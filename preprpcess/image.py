@@ -6,6 +6,7 @@
 """
 import os
 import sys
+import shutil
 
 import cv2
 import numpy as np
@@ -45,6 +46,15 @@ class ImagePreprocess(object):
         ret_img = cv2.erode(e_img, kernel, iter)
         return ret_img
     
+    def dilation(self, img, k_size=(3,3), iter=1):
+        """
+        @brief 画像の白い部分を大きくする膨張処理
+        """
+        d_img = np.copy(img)
+        kernel = np.ones(k_size, np.uint8)
+        ret_img = cv2.dilate(d_img, kernel, iter)
+        return ret_img
+    
     def img2word(self, img_path, build_option_num, lang='jpn'):
         """
         @brief 画像に書かれている文面を返す
@@ -65,7 +75,7 @@ class ImagePreprocess(object):
         )
         return word
     
-    def crop_img2word(self, img, crop_pos, file_name, build_option_num, gauss=False, erosion=False):
+    def crop_img2word(self, img, crop_pos, file_name, build_option_num, thresh_min=100, gauss=False, erosion=False):
         """
         @brief 画像を切り出し切り出し範囲から単語を読み取る
         @param img (numpy.ndarray) 切り出したい画像
@@ -74,21 +84,23 @@ class ImagePreprocess(object):
         @return word (str) 画像から読み取った文字
         """
         img = self.crop(img, crop_pos)
-        cv2.imwrite("/home/hishida/Desktop/test1.jpg", img)
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        cv2.imwrite("/home/hishida/Desktop/test2.jpg", img_gray)
         if gauss:
             img_gray = cv2.GaussianBlur(img_gray, (1,1), 0)
-        _, img_binary = cv2.threshold(img_gray, 210, 255, cv2.THRESH_BINARY)
+        _, img_binary = cv2.threshold(img_gray, thresh_min, 255, cv2.THRESH_BINARY)
         if erosion:
             img_binary = cv2.bitwise_not(img_binary)
-            cv2.imwrite("/home/hishida/Desktop/test4.jpg", img_binary)
             img_binary = self.erosion(img_binary)
+            cv2.imwrite("/home/hishida/Desktop/test_erosion.jpg", img_binary)
+            img_binary = self.dilation(img_binary)
+            cv2.imwrite("/home/hishida/Desktop/test_dilation.jpg", img_binary)
             img_binary = cv2.bitwise_not(img_binary)
-        tmp_save_path_dir = "/home/hishida/Documents/100_pawapuro/pawapuro_player/tmp"
+        tmp_save_path_dir = "/home/hishida/Documents/100_pawapuro/players_ability/tmp"
         os.makedirs(tmp_save_path_dir, exist_ok=True)
         tmp_save_path = os.path.join(tmp_save_path_dir, file_name) 
         cv2.imwrite(tmp_save_path, img_binary)
-
+        cv2.imwrite("/home/hishida/Desktop/test.jpg", img_binary)
         word = self.img2word(tmp_save_path, build_option_num)
+        input()
+        shutil.rmtree(tmp_save_path_dir)
         return word

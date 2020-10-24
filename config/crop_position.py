@@ -13,7 +13,8 @@ class CropPosition(object):
     TEAM_FLAG = [648, 224, 732, 284]
 
     #選手名の切り出し位置
-    PLAYER_NAME = [411, 222, 638, 283]
+    # PLAYER_NAME = [411, 222, 638, 283]
+    PLAYER_NAME = [420, 223, 629, 283]
 
     #背番号
     UNIFORM_NUMBER = [762, 225, 839, 282]

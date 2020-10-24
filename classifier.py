@@ -28,7 +28,6 @@ class Classifier(object):
 
         team_flag_imgs_path = "/media/hishida/disk/000_dataset/team_flag_2020"
         self.__tf_path_list = [team_flag_path for team_flag_path in self.__fm.get_file_path_list(team_flag_imgs_path)]
-
         self.init_img_info()
 
 
@@ -51,10 +50,12 @@ class Classifier(object):
         """
         hist_list = []
         target_img = self.__ip.crop(player_img, self.__cp.TEAM_FLAG)
-        target_hist = cv2.calcHist([target_img], channels=[0], mask=None, histSize=[256], ranges=[0, 256])
+        target_img = cv2.cvtColor(target_img, cv2.COLOR_BGR2GRAY)
+        target_hist = cv2.calcHist([target_img], channels=[0], mask=None, histSize=[200], ranges=[0, 200])
         for tf_path in self.__tf_path_list:
             tf_img = self.__fm.load_image(tf_path)
-            compare_hist = cv2.calcHist([tf_img], channels=[0], mask=None, histSize=[256], ranges=[0, 256])
+            tf_img = cv2.cvtColor(tf_img, cv2.COLOR_BGR2GRAY)
+            compare_hist = cv2.calcHist([tf_img], channels=[0], mask=None, histSize=[200], ranges=[0, 200])
             ret_hist = cv2.compareHist(target_hist, compare_hist, 0)
             hist_list.append(ret_hist)
         max_hist = max(hist_list)
@@ -64,12 +65,24 @@ class Classifier(object):
         self.__img_info_list.append(team_name)
 
 
-    def judge_page_num(self, player_img, file_name, build_option_num=6):
+    def read_player_name(self, player_img, file_name, build_option_num=6, thresh_min=105):
+        """
+        @brief 画像から選手名を読み取る
+        @param player_img (numpy.ndarray) 選手画像
+        @param file_name (str) ファイル名
+        @param build_option_num (int) pyocrのオプション番号
+        """
+        player_name = self.__ip.crop_img2word(player_img, self.__cp.PLAYER_NAME, file_name, build_option_num=6, thresh_min=thresh_min)
+        print("player_name: ", player_name)
+        self.__img_info_list.append(player_name)
+
+    def judge_page_num(self, player_img, file_name, build_option_num=6, thresh_min=200):
         """
         @brief ページ番号を決める
         @param player_img (numpy.ndarray) 選手画像
         @param file_name (str) ファイル名
         @param build_option_num (int) pyocrのオプション番号
+        build_option_num is the same as function of read_player_name.
             0 = Orientation and script detection (OSD) only.
             1 = Automatic page segmentation with OSD.
             2 = Automatic page segmentation, but no OSD, or OCR
@@ -82,30 +95,38 @@ class Classifier(object):
             9 = Treat the image as a single word in a circle.
             10 = Treat the image as a single character.
         """
-        aptitude = self.__ip.crop_img2word(player_img, self.__cp.APTITUDE, file_name, build_option_num, gauss=True)
-        print("aptitude: ", aptitude)
-        input()
-        main_aptitude = self.__ip.crop_img2word(player_img, self.__cp.MAIN_APTITUDE, file_name, build_option_num=8, gauss=False, erosion=True)
-        print("main_aptitude: ", main_aptitude)
-        input()
-        chan_pin_usage = self.__ip.crop_img2word(player_img, self.__cp.CHAN_PIN_USAGE, file_name, build_option_num, gauss=True)
-        print("chan_pin_usage: ", chan_pin_usage)
-        input()
-        print("[aptitude]: {}, [main_aptitude]: {}, [chan_pin_usage]: {}".format(aptitude, main_aptitude, chan_pin_usage))
-        if aptitude == "適性":
+        aptitude = self.__ip.crop_img2word(player_img, self.__cp.APTITUDE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
+        main_aptitude = self.__ip.crop_img2word(player_img, self.__cp.MAIN_APTITUDE, file_name, build_option_num=8, thresh_min=180)
+        chan_pin_usage = self.__ip.crop_img2word(player_img, self.__cp.CHAN_PIN_USAGE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
+        print("[aptitude]: {}\n[main_aptitude]: {}\n[chan_pin_usage]: {}".format(aptitude, main_aptitude, chan_pin_usage))
+        if aptitude == "適性" or aptitude == "適 性":
             if main_aptitude == "先" or main_aptitude == "中" or main_aptitude == "抑":
+                self.__img_info_list.insert(1, "pitcher")
                 self.__img_info_list.append("1")
             else:
+                self.__img_info_list.insert(1, "fielder")
                 self.__img_info_list.append("2")
         else:
-            if chan_pin_usage == "チャンス":
-                self.__img_info_list.append("1")
-            elif chan_pin_usage == "対ピンチ":
-                self.__img_info_list.append("2")
-            elif chan_pin_usage == "起用法":
-                self.__img_info_list.append("3")
+            if main_aptitude == "投":
+                self.__img_info_list.insert(1, "pitcher")
+                if chan_pin_usage == "チャンス":
+                    self.__img_info_list.append("2")
+                elif chan_pin_usage == "対ピンチ":
+                    self.__img_info_list.append("1")
+                elif chan_pin_usage == "起用法":
+                    self.__img_info_list.append("3")
+                else:
+                    self.__img_info_list.append("4")
             else:
-                self.__img_info_list.append("4")
+                self.__img_info_list.insert(1, "fielder")
+                if chan_pin_usage == "チャンス":
+                    self.__img_info_list.append("1")
+                elif chan_pin_usage == "対ピンチ":
+                    self.__img_info_list.append("2")  
+                elif chan_pin_usage == "起用法":
+                    self.__img_info_list.append("3")
+                else:
+                    self.__img_info_list.append("4")
 
     def read_img_info(self, img_path):
         """
@@ -115,13 +136,17 @@ class Classifier(object):
         basename = os.path.basename(img_path)
         player_img = self.__fm.load_image(img_path)
         self.estimate_team(player_img)
+        self.read_player_name(player_img, basename)
         self.judge_page_num(player_img, basename)
-    
-    # def save_img(self, output_path):
-    #     """
-    #     @brief self.__img_info_listに格納されている情報をもとに画像をsaveする。
-    #     @param 
-    #     """
+        print(self.__img_info_list)
+        input()
+
+    def save_img(self, output_path):
+        """
+        @brief self.__img_info_listに格納されている情報をもとに画像をsaveする。
+        @param output_path 
+        """
+        pass
 
     
     def main(self, d_path, o_path):
