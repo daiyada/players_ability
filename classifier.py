@@ -144,13 +144,18 @@ class Classifier(object):
         print(self.__img_info_list)
         
 
-    def save_img(self, output_path):
+    def save_img(self, output_path, player_img_path, ext='jpg'):
         """
         @brief self.__img_info_listに格納されている情報をもとに画像をsaveする。
-        @param output_path 
+        @param output_path (str) 分類後の画像を収めるパス
+        @param player_img_path (str) 選手画像のパス
         """
-        pass
-
+        player_img = cv2.imread(player_img_path)
+        save_dir = os.path.join(output_path, self.__img_info_list[0], self.__img_info_list[1],
+                                self.__img_info_list[2])
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, "{}.{}".format(self.__img_info_list[3], ext))
+        cv2.imwrite(save_path, player_img)
     
     def main(self, d_path, o_path):
         """
@@ -162,6 +167,7 @@ class Classifier(object):
         for player_img_path in player_img_list:
             self.init_img_info()
             self.read_img_info(player_img_path)
+            self.save_img(output_path, player_img_path)
     
 if __name__ == "__main__":
     print("[start]")
