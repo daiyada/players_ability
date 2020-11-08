@@ -6,13 +6,15 @@
 """
 import argparse
 import os
+import shutil
 
 import cv2
 import numpy as np
 
 from config.crop_position import CropPosition
 from manage.file_manager import FileManager
-from preprpcess.image import ImagePreprocess
+from preprocess.image import ImagePreprocess
+from preprocess.interface import PreProcessInterface
 
 class Classifier(object):
     """
@@ -25,6 +27,7 @@ class Classifier(object):
         self.__cp = CropPosition()
         self.__fm = FileManager()
         self.__ip = ImagePreprocess()
+        self.__pi = PreProcessInterface()
 
         team_flag_imgs_path = "/media/hishida/disk/000_dataset/team_flag_2020"
         self.__tf_path_list = [team_flag_path for team_flag_path in self.__fm.get_file_path_list(team_flag_imgs_path)]
@@ -72,9 +75,9 @@ class Classifier(object):
         @param file_name (str) ファイル名
         @param build_option_num (int) pyocrのオプション番号
         """
-        player_name = self.__ip.crop_img2word(player_img, self.__cp.PLAYER_NAME, file_name, build_option_num=6, thresh_min=thresh_min)
-        print("player_name: ", player_name)
+        player_name = self.__pi.crop_img2word(player_img, self.__cp.PLAYER_NAME, file_name, build_option_num=10, thresh_min=thresh_min, gauss=True, padding=True)
         self.__img_info_list.append(player_name)
+
 
     def judge_page_num(self, player_img, file_name, build_option_num=6, thresh_min=200):
         """
@@ -95,11 +98,11 @@ class Classifier(object):
             9 = Treat the image as a single word in a circle.
             10 = Treat the image as a single character.
         """
-        aptitude = self.__ip.crop_img2word(player_img, self.__cp.APTITUDE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
-        main_aptitude = self.__ip.crop_img2word(player_img, self.__cp.MAIN_APTITUDE, file_name, build_option_num=8, thresh_min=180)
-        chan_pin_usage = self.__ip.crop_img2word(player_img, self.__cp.CHAN_PIN_USAGE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
+        aptitude = self.__pi.crop_img2word(player_img, self.__cp.APTITUDE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
+        main_aptitude = self.__pi.crop_img2word(player_img, self.__cp.MAIN_APTITUDE, file_name, build_option_num=8, thresh_min=180, padding=True, main_aptitude=True)
+        chan_pin_usage = self.__pi.crop_img2word(player_img, self.__cp.CHAN_PIN_USAGE, file_name, build_option_num, thresh_min=thresh_min, gauss=True)
         print("[aptitude]: {}\n[main_aptitude]: {}\n[chan_pin_usage]: {}".format(aptitude, main_aptitude, chan_pin_usage))
-        if aptitude == "適性" or aptitude == "適 性":
+        if aptitude == "適性":
             if main_aptitude == "先" or main_aptitude == "中" or main_aptitude == "抑":
                 self.__img_info_list.insert(1, "pitcher")
                 self.__img_info_list.append("1")
@@ -139,7 +142,7 @@ class Classifier(object):
         self.read_player_name(player_img, basename)
         self.judge_page_num(player_img, basename)
         print(self.__img_info_list)
-        input()
+        
 
     def save_img(self, output_path):
         """
@@ -159,7 +162,6 @@ class Classifier(object):
         for player_img_path in player_img_list:
             self.init_img_info()
             self.read_img_info(player_img_path)
-
     
 if __name__ == "__main__":
     print("[start]")
