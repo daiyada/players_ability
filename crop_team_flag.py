@@ -12,7 +12,7 @@ import numpy as np
 
 from config.crop_position import CropPosition
 from manage.file_manager import FileManager
-from preprpcess.image import ImagePreprocess
+from preprocess.image import ImagePreprocess
 
 class CropTeamFlag(object):
     """
@@ -26,14 +26,14 @@ class CropTeamFlag(object):
         # self.__crop_pos = [648, 224, 732, 284]
 
         # 保存する球団フラグの名前
-        self.__flag_name = "example"
+        self.__flag_name = "Nipponham_Fighters"
         
         self.__fm = FileManager()
         self.__ip = ImagePreprocess()
         self.__cp = CropPosition()
         
 
-    def main(self, img_path, output_path, ext="jpg"):
+    def main(self, img_path, output_path, ext="png"):
         """
         @brief main関数
         @param img_path (str) 切り取る画像のパス

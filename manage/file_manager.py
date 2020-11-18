@@ -37,7 +37,7 @@ class FileManager(object):
         img = cv2.imread(path)
         return img
         
-    def get_file_path_list(self, path, ext='jpg', recursive=True):
+    def get_file_path_list(self, path, recursive=True):
         """
         @brief ファイル内の指定した拡張子のファイルをリストで返す
         @param path (str) 特定ファイルのパス
@@ -51,8 +51,8 @@ class FileManager(object):
             return ret_list
 
         if recursive == True:
-            path = os.path.join('{}/**/*.{}'.format(path, ext))
+            path = os.path.join('{}/**/*'.format(path))
         else:
-            path = os.path.join('{}/*{}'.format(path, ext))
+            path = os.path.join('{}/*'.format(path))
         ret_list = glob.glob(path, recursive=recursive)
         return ret_list
