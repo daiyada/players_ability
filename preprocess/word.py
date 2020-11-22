@@ -68,7 +68,7 @@ class WordPreprocess(object):
         ret_word = ret_word.replace("　", "")
         ret_word = ret_word.replace("「", "")
         ret_word = ret_word.replace("『", "")
+        ret_word = ret_word.replace("|", "")
         if main_aptitude and len(ret_word) >= 2:
-            print('通過')
             ret_word = ret_word[:-1]
         return ret_word

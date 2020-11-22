@@ -7,6 +7,7 @@
 import argparse
 import os
 import shutil
+from tqdm import tqdm
 
 import cv2
 import numpy as np
@@ -144,7 +145,7 @@ class Classifier(object):
         print(self.__img_info_list)
         
 
-    def save_img(self, output_path, player_img_path, ext='jpg'):
+    def save_img(self, output_path, player_img_path, ext='png'):
         """
         @brief self.__img_info_listに格納されている情報をもとに画像をsaveする。
         @param output_path (str) 分類後の画像を収めるパス
@@ -164,7 +165,7 @@ class Classifier(object):
         @param o_path (str) アウトプットパス
         """
         player_img_list = self.__fm.get_file_path_list(d_path)
-        for player_img_path in player_img_list:
+        for player_img_path in tqdm(player_img_list):
             self.init_img_info()
             self.read_img_info(player_img_path)
             self.save_img(output_path, player_img_path)
